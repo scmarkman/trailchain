@@ -4,24 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0f" />
+    <meta name="description" content="A 20-second snake relay where your run becomes the next player's maze. Share it. Keep it moving." />
+
+    <!-- iOS / PWA-ish -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    
+
     <!-- Social / Open Graph -->
     <meta property="og:title" content="TRAILCHAIN" />
-    <meta property="og:description" content="Your run becomes their maze. Don't end the chain." />
+    <meta property="og:description" content="Your run becomes their maze. Add your trail. Keep it moving." />
     <meta property="og:type" content="website" />
-    
+    <meta property="og:image" content="/og.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TRAILCHAIN" />
+    <meta name="twitter:description" content="Your run becomes their maze. Add your trail. Keep it moving." />
+    <meta name="twitter:image" content="/og.png" />
+
     <title>TRAILCHAIN</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #root { 
-        width: 100%; height: 100%; 
-        background: #0a0a0f; 
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        background: #0a0a0f;
         overflow: hidden;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
+      button { font: inherit; }
     </style>
   </head>
   <body>
