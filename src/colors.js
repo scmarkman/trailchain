@@ -1,0 +1,18 @@
+export const COLORS = {
+  bg: '#0a0a0f',
+  grid: '#12121a',
+  gridLine: '#1a1a25',
+  wall: '#2a2a3a',
+  trailFills: ['#ff6b3520', '#3b82f620', '#f59e0b20', '#10b98120', '#8b5cf620', '#ef444420'],
+  trailStrokes: ['#ff6b35', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444'],
+  snake: '#00ff88',
+  snakeHead: '#00ffaa',
+  snakeGlow: '#00ff8866',
+  spark: '#ffd700',
+  sparkGlow: '#ffd70066',
+  text: '#e0e0e0',
+  accent: '#00ff88',
+  accentDim: '#00ff8844',
+  danger: '#ff4444',
+  success: '#00ff88',
+}
