@@ -17,7 +17,7 @@ function fitCanvas(canvas) {
 }
 
 export default function GameScreen({ session, onFinished, onAbort }) {
-  const { chainId, dailyKey, seed, mode } = session;
+  const { chainId, dailyKey, seed, mode, loadout } = session;
 
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -85,6 +85,7 @@ export default function GameScreen({ session, onFinished, onAbort }) {
       blocked: solid,
       chainCount,
       mode,
+      loadout,
     });
     engineRef.current = engine;
 
@@ -96,7 +97,6 @@ export default function GameScreen({ session, onFinished, onAbort }) {
 
     let prevSparks = 0;
     let prevAlive = true;
-    let lastHead = null;
 
     function step(now) {
       const dt = now - last;
@@ -147,13 +147,15 @@ export default function GameScreen({ session, onFinished, onAbort }) {
       });
 
       // finish conditions
-      const completed = elapsed >= SEGMENT_MS && st.alive;
+      const targetMs = Math.max(6000, SEGMENT_MS + (loadout?.buffs?.timeBonusMs || 0));
+      const completed = elapsed >= targetMs && st.alive;
       const crashed = !st.alive;
 
       if (completed || crashed) {
         cancelAnimationFrame(rafRef.current);
 
         const result = {
+          runId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           chainId,
           dailyKey,
           mode,
@@ -161,7 +163,7 @@ export default function GameScreen({ session, onFinished, onAbort }) {
           crashed,
           score: st.score,
           sparks: st.sparks,
-          durationMs: Math.min(elapsed, SEGMENT_MS),
+          durationMs: Math.min(elapsed, Math.max(6000, SEGMENT_MS + (loadout?.buffs?.timeBonusMs || 0))),
           chainCountAtStart: chainCount,
           usedK,
           trail: engine.getTrail(),
@@ -196,9 +198,16 @@ export default function GameScreen({ session, onFinished, onAbort }) {
       else engine.setTurn(1);
     }
 
+    let lastInputTs = 0;
+
     function onKey(e) {
-      if (e.key === "ArrowLeft" || e.key === "a") engine.setTurn(-1);
-      if (e.key === "ArrowRight" || e.key === "d") engine.setTurn(1);
+      const reactionMs = loadout?.buffs?.reactionMs ?? 110;
+      const now = performance.now();
+      if (now - lastInputTs < reactionMs && e.key !== " " && e.key !== "Shift") return;
+      if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") { engine.setDirection(0); lastInputTs = now; }
+      if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") { engine.setDirection(1); lastInputTs = now; }
+      if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") { engine.setDirection(2); lastInputTs = now; }
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") { engine.setDirection(3); lastInputTs = now; }
       if (e.key === " " || e.key === "Shift") engine.activatePhase();
     }
 
@@ -216,9 +225,10 @@ export default function GameScreen({ session, onFinished, onAbort }) {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
     };
-  }, [loading, chainId, seed, mode, solid, stats.chainCount, usedK, onFinished, dailyKey]);
+  }, [loading, chainId, seed, mode, solid, stats.chainCount, usedK, onFinished, dailyKey, loadout]);
 
-  const secsLeft = Math.max(0, (SEGMENT_MS - hud.elapsedMs) / 1000);
+  const targetMs = Math.max(6000, SEGMENT_MS + (loadout?.buffs?.timeBonusMs || 0));
+  const secsLeft = Math.max(0, (targetMs - hud.elapsedMs) / 1000);
 
   return (
     <ScreenShell>
@@ -227,7 +237,7 @@ export default function GameScreen({ session, onFinished, onAbort }) {
           <div>
             <div style={{ fontWeight: 800, letterSpacing: 0.4 }}>TRAILCHAIN</div>
             <div className="small muted2">
-              {dailyKey ? `Daily ${dailyKey}` : "Custom chain"} • Walls from last {usedK} runs
+              {dailyKey ? `Daily ${dailyKey}` : "Custom chain"} • {loadout?.name || "Neon Block"} • Walls from last {usedK} runs
             </div>
           </div>
 
@@ -300,8 +310,8 @@ export default function GameScreen({ session, onFinished, onAbort }) {
               <canvas ref={canvasRef} style={{ width: "100%", height: "100%", borderRadius: 14 }} />
             </div>
             <div className="small muted2" style={{ marginTop: 10, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-              <span>Tap left/right to turn.</span>
-              <span>Goal: survive 20s.</span>
+              <span>Tap left/right or use ↑ ↓ ← → to steer.</span>
+              <span>Goal: survive {(targetMs / 1000).toFixed(1)}s.</span>
             </div>
           </div>
 
