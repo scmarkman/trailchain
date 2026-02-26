@@ -4,6 +4,8 @@ import GameScreen from "./ui/GameScreen.jsx";
 import EndScreen from "./ui/EndScreen.jsx";
 import { readQuery, setQuery } from "./lib/url.js";
 import { getOrCreateDailyChain, loadChain, todayKeyUTC } from "./services/chain.js";
+import { getEquippedItem } from "./lib/storage.js";
+import { getEffectiveLoadout } from "./game/shop.js";
 
 export default function App() {
   const initialQuery = useMemo(() => readQuery(), []);
@@ -24,13 +26,15 @@ export default function App() {
         return;
       }
 
+      const loadout = getEffectiveLoadout(getEquippedItem());
+
       try {
         if (dailyKey) {
           const key = dailyKey === "today" ? todayKeyUTC() : dailyKey;
           const chain = await getOrCreateDailyChain(key);
           if (cancelled) return;
           setQuery({ d: key, c: null, m: mode || "classic" });
-          setSession({ chainId: chain.id, dailyKey: key, seed: chain.seed, mode: mode || "classic" });
+          setSession({ chainId: chain.id, dailyKey: key, seed: chain.seed, mode: mode || "classic", loadout });
           setScreen("play");
           return;
         }
@@ -39,7 +43,7 @@ export default function App() {
           const chain = await loadChain(chainId);
           if (cancelled) return;
           setQuery({ c: chainId, d: null, m: mode || "classic" });
-          setSession({ chainId: chainId, dailyKey: null, seed: chain.seed, mode: mode || "classic" });
+          setSession({ chainId: chainId, dailyKey: null, seed: chain.seed, mode: mode || "classic", loadout });
           setScreen("play");
           return;
         }
