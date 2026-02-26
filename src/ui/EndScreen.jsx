@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import ScreenShell from "./ScreenShell.jsx";
 import { buildShareUrl } from "../lib/url.js";
 import { makeShareText } from "../lib/emoji.js";
-import { updateDailyStreak } from "../lib/storage.js";
+import { addCoins, getCoins, updateDailyStreak } from "../lib/storage.js";
 
 function fmtMs(ms) {
   return (ms / 1000).toFixed(1) + "s";
@@ -78,6 +78,8 @@ async function makeShareCardPng({ completed, score, chainCount, dailyKey, mode }
 export default function EndScreen({ result, onPlayAgain, onHome }) {
   const [copied, setCopied] = useState("");
   const [streakInfo, setStreakInfo] = useState(null);
+  const [coinReward, setCoinReward] = useState(0);
+  const [coinTotal, setCoinTotal] = useState(getCoins());
 
   const shareUrl = useMemo(() => buildShareUrl({
     chainId: result.chainId,
@@ -97,6 +99,17 @@ export default function EndScreen({ result, onPlayAgain, onHome }) {
     if (result.dailyKey && result.completed) {
       const info = updateDailyStreak(result.dailyKey);
       setStreakInfo(info);
+    }
+
+    const reward = Math.max(5, Math.floor(result.sparks * 8 + (result.completed ? 35 : 0)));
+    setCoinReward(reward);
+
+    const rewardKey = `trailchain:rewarded:${result.runId || "legacy"}`;
+    if (!sessionStorage.getItem(rewardKey)) {
+      sessionStorage.setItem(rewardKey, "1");
+      setCoinTotal(addCoins(reward));
+    } else {
+      setCoinTotal(getCoins());
     }
   }, [result]);
 
@@ -167,6 +180,9 @@ export default function EndScreen({ result, onPlayAgain, onHome }) {
                 Daily streak: <b>{streakInfo.streak} 🔥</b>
               </div>
             )}
+            <div className="muted" style={{ marginTop: 8 }}>
+              Shop sparks earned: <b>+{coinReward}</b> • Balance: <b>{coinTotal}</b>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>

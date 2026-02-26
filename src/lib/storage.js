@@ -53,3 +53,45 @@ export function updateDailyStreak(todayKey) {
   saveStore(s);
   return { streak: s.dailyStreak || 1, lastWin: todayKey };
 }
+
+
+export function getCoins() {
+  const s = loadStore();
+  return Number.isFinite(s.coins) ? Math.max(0, Math.floor(s.coins)) : 0;
+}
+
+export function addCoins(delta) {
+  const s = loadStore();
+  const current = Number.isFinite(s.coins) ? s.coins : 0;
+  s.coins = Math.max(0, Math.floor(current + delta));
+  saveStore(s);
+  return s.coins;
+}
+
+export function getOwnedItems() {
+  const s = loadStore();
+  const owned = Array.isArray(s.ownedItems) ? s.ownedItems.filter((v) => typeof v === "string") : [];
+  if (!owned.includes("neon-block")) owned.unshift("neon-block");
+  return Array.from(new Set(owned));
+}
+
+export function ownItem(itemId) {
+  const s = loadStore();
+  const owned = Array.isArray(s.ownedItems) ? s.ownedItems.filter((v) => typeof v === "string") : [];
+  if (!owned.includes("neon-block")) owned.unshift("neon-block");
+  if (!owned.includes(itemId)) owned.push(itemId);
+  s.ownedItems = Array.from(new Set(owned));
+  saveStore(s);
+  return s.ownedItems;
+}
+
+export function getEquippedItem() {
+  const s = loadStore();
+  return typeof s.equippedItem === "string" ? s.equippedItem : "neon-block";
+}
+
+export function setEquippedItem(itemId) {
+  const s = loadStore();
+  s.equippedItem = itemId;
+  saveStore(s);
+}

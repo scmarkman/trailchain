@@ -38,12 +38,20 @@ function manhattan(a, b) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
-export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode = "classic" }) {
+export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode = "classic", loadout = null }) {
   const w = BOARD_W;
   const h = BOARD_H;
   const rand = mulberry32(seed);
 
   let dir = 1; // right
+
+  const speedMultiplier = Number.isFinite(loadout?.buffs?.speedMultiplier)
+    ? loadout.buffs.speedMultiplier
+    : 1;
+  const edgeWrap = Boolean(loadout?.buffs?.edgeWrap);
+  const snakeShape = loadout?.shape || "square";
+  const snakeColor = loadout?.color || "#38bdf8";
+  const snakeHeadColor = loadout?.headColor || "#86efac";
   let alive = true;
   let score = 0;
   let sparks = 0;
@@ -60,6 +68,7 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
   const inputs = []; // for analytics/replay: {t, turn}
   let tick = 0;
   let pendingTurn = 0;
+  let pendingDir = null;
 
   // snake
   let body = [];          // cell ids, head at index 0
@@ -134,7 +143,16 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
     if (!alive) return;
     if (turn !== -1 && turn !== 1) return;
     pendingTurn = turn;
+    pendingDir = null;
     inputs.push({ t: tick, turn });
+  }
+
+  function setDirection(nextDir) {
+    if (!alive) return;
+    if (![0, 1, 2, 3].includes(nextDir)) return;
+    pendingDir = nextDir;
+    pendingTurn = 0;
+    inputs.push({ t: tick, dir: nextDir });
   }
 
   function activatePhase() {
@@ -147,7 +165,7 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
   }
 
   function getTicksPerSecond() {
-    const tps = BASE_TPS + sparks * TPS_PER_SPARK + chainCount * TPS_PER_CHAIN;
+    const tps = (BASE_TPS + sparks * TPS_PER_SPARK + chainCount * TPS_PER_CHAIN) * speedMultiplier;
     return Math.min(MAX_TPS, Math.max(8, tps));
   }
 
@@ -169,25 +187,31 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
       if (comboMs === 0) combo = 0;
     }
 
-    // apply pending turn once per tick
-    if (pendingTurn !== 0) {
-      const nextDir = (dir + pendingTurn + 4) % 4;
+    // apply pending turn/direction once per tick
+    if (pendingTurn !== 0 || pendingDir !== null) {
+      const nextDir = pendingDir !== null ? pendingDir : (dir + pendingTurn + 4) % 4;
       // prevent instant 180 reversal when length > 1
       const backDir = (dir + 2) % 4;
       if (!(body.length > 1 && nextDir === backDir)) {
         dir = nextDir;
       }
       pendingTurn = 0;
+      pendingDir = null;
     }
 
     const head = fromCell(body[0], w);
     const d = DIRS[dir];
-    const nx = head.x + d.x;
-    const ny = head.y + d.y;
+    let nx = head.x + d.x;
+    let ny = head.y + d.y;
 
     if (!inBounds(nx, ny, w, h)) {
-      alive = false;
-      return;
+      if (edgeWrap) {
+        nx = (nx + w) % w;
+        ny = (ny + h) % h;
+      } else {
+        alive = false;
+        return;
+      }
     }
 
     const nextCell = toCell(nx, ny, w);
@@ -250,6 +274,9 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
       phaseCharges,
       phaseMs,
       tps: getTicksPerSecond(),
+      snakeShape,
+      snakeColor,
+      snakeHeadColor,
     };
   }
 
@@ -265,6 +292,7 @@ export function createEngine({ seed, blocked = new Set(), chainCount = 0, mode =
   return {
     step,
     setTurn,
+    setDirection,
     activatePhase,
     getTicksPerSecond,
     getState,
